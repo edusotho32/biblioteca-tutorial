@@ -10,11 +10,12 @@ const TABELAS: Record<string, string> = {
 };
 
 for await (const file of new Glob("src/modules/**/*.ts").scan(".")) {
-  const module = file.split("/")[2]!;
+  const normalizedFile = file.replaceAll("\\", "/");
+  const module = normalizedFile.split("/")[2]!;
   const code = await Bun.file(file).text();
 
   for (const found of code.matchAll(/from\s+"(\.[^"]+)"/g)) {
-    const target = normalize(join(dirname(file), found[1]!));
+    const target = normalize(join(dirname(file), found[1]!)).replaceAll("\\", "/");
 
     if (!target.startsWith("src/modules/")) continue;
 
