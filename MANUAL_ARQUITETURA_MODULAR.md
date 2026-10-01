@@ -12,8 +12,6 @@
   👉 **`https://github.com/edusotho32/biblioteca-tutorial/blob/guia-prova/GUIA_PROVA_TEES_2026.md`**
 * 🔗 **Manual Técnico (Branch `prova`):**  
   👉 **`https://github.com/edusotho32/biblioteca-tutorial/blob/prova/GUIA_PROVA_TEES_2026.md`**
-* 🔗 **Manual Técnico no Repositório (`MANUAL_ARQUITETURA_MODULAR.md`):**  
-  👉 **`https://github.com/edusotho32/biblioteca-tutorial/blob/guia-prova/MANUAL_ARQUITETURA_MODULAR.md`**
 
 ---
 

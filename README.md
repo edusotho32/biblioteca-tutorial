@@ -17,6 +17,10 @@ open .docs/tutorial-aluno.html
 O tutorial traz as 53 fases em sequência, com o código pronto para copiar.
 Este branch (`main`) tem o código no estado final, ao fim da fase 53.
 
+## Caderno de Estudos e Referência Técnica
+
+Para documentação detalhada sobre a arquitetura de Fatias Verticais, convenções de camadas e estudos práticos das atividades do laboratório, consulte o [Manual de Arquitetura Modular](MANUAL_ARQUITETURA_MODULAR.md).
+
 ## Uma branch por fase
 
 Cada fase tem uma branch com o código **concluído** até ela e o enunciado em
