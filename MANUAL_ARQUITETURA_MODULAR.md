@@ -832,3 +832,50 @@ bun run verificar
 ```
 
 A aprovação unânime das três ferramentas confirma que o sistema atende integralmente aos requisitos de integridade de tipos, correção funcional e estrita aderência arquitetural.
+
+---
+
+## ⚠️ 10. ATENÇÃO: 4 Armadilhas Críticas de Avaliação (Checklist de Pontuação)
+
+Evite a perda desnecessária de pontos observando atentamente estas 4 exigências recorrentes da banca:
+
+### 1. Rigor nos Códigos de Status HTTP (Protocolo REST)
+* **`200 OK`:** Para operações de consulta (`GET`) e atualizações parciais (`PATCH` / `PUT`).
+  ```typescript
+  return contexto.json(resultado, 200);
+  ```
+* **`201 Created` + Cabeçalho `Location`:** Obrigatório para criações (`POST`). Sempre anexe o header de localização do recurso:
+  ```typescript
+  contexto.header("Location", `/avaliacoes/${avaliacao.id}`);
+  return contexto.json(avaliacao, 201);
+  ```
+* **`404 Not Found` vs `409 Conflict`:**
+  * Se o recurso não existir: lance `throw new NotFound("Mensagem...")`.
+  * Se houver duplicidade ou conflito de regra: lance `throw new RuleConflict("Mensagem...")`.
+  * **Regra de Ouro:** Não capture essas exceções com `try/catch` na rota HTTP. O framework Hono possui interceptor global que converte essas exceções automaticamente nos códigos de status adequados.
+
+### 2. Inicialização de Schemas de Banco em `src/server.ts`
+Caso a atividade introduza um novo módulo (ex: `avaliacoes` ou `emprestimos`), a tabela SQLite **não é criada de forma automática**. É imperativo invocar a criação do schema no bootstrap do servidor:
+* Abra `src/server.ts`.
+* Junto às chamadas `createAcervoTables()` e `createAutoriaTables()`, inclua:
+  ```typescript
+  createAvaliacaoTables(); // ou createEmprestimoTables();
+  ```
+*(Omitir esta linha provocará a falha `no such table` na primeira requisição de escrita).*
+
+### 3. Modificador de Exportação em `Identifier` (`src/shared/identifiers.ts`)
+Ao instanciar novos Value Objects de identidade (`AvaliacaoId`, `EmprestimoId`), verifique se a classe base possui o modificador `export`:
+```typescript
+export abstract class Identifier { ... }
+```
+A ausência do modificador na classe genérica impede a herança adequada por outros módulos.
+
+### 4. Propagação de Eventos de Domínio (`EventBus`)
+Caso o enunciado requeira explicitamente reação assíncrona ou atualização de projeções (fases finais do tutorial):
+* Injetar o `EventBus` no construtor do caso de uso.
+* Invocar a publicação logo após a persistência bem-sucedida:
+  ```typescript
+  this.eventBus.publish(new LivroCatalogado(livro.id));
+  ```
+*(Caso o enunciado não faça menção a eventos, mantenha a orquestração clássica sem acoplamento ao barramento).*
+
