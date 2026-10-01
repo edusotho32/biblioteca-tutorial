@@ -516,30 +516,273 @@ export class AcervoComoConsultaDeAvaliacoes implements ConsultaDeAcervo {
 
 ---
 
-## 🔮 7. Padrões de Extensibilidade Arquitetural (Cenários Complementares)
+## 🔮 7. Padrões de Extensibilidade Arquitetural: 3 Cenários Práticos Prontos
 
-Orientações para extensões funcionais adicionais respeitando os limites arquiteturais:
+Caso o professor aplique variações ou novos casos de uso na avaliação, utilize estas implementações de referência completas:
 
-### Padrão A: Operações Destrutivas ou Alterações de Estado (`DELETE` ou `PATCH`)
-* **Exemplo de Caso de Uso:** Cancelamento, Desativação ou Exclusão de Entidade.
-* **Passos Arquiteturais:**
-  1. No Domínio (`domain/<Entidade>.ts`): Método imutável de transição de estado (`cancelar(): Entidade` ou `desativar(): Entidade`).
-  2. No Repositório (`domain/<Entidade>Repository.ts`): Método declarativo de persistência (`delete(id: Id): void` ou `updateStatus(entidade: Entidade): void`).
-  3. Na Infraestrutura (`infrastructure/Sqlite...Repository.ts`): Execução SQL correspondente (`DELETE FROM ... WHERE id = ?`).
-  4. Na Fatia (`features/<acao>/`): Criação isolada de `input.ts`, `<CasoDeUso>.ts` e `route.ts`.
-  5. Registro no Roteador, na Raiz de Composição (`composition.ts`) e no Dublê (`doubles.ts`).
+---
 
-### Padrão B: Criação de Novo Módulo de Domínio com Dependências Externas
-* **Exemplo de Caso de Uso:** Módulo de Empréstimos, Leitores ou Reservas.
-* **Passos Arquiteturais:**
-  1. Identificador tipado em `src/shared/identifiers.ts`.
-  2. Estrutura de três camadas em `src/modules/<modulo>/` (`domain`, `features`, `infrastructure`).
-  3. Inicialização de schema em `infrastructure/tables.ts` e repositório SQLite.
-  4. **Isolamento de Banco:** Caso o novo módulo necessite consultar entidades externas, definir uma porta local no módulo chamador (`domain/Consulta...ts`) e implementar o adaptador correspondente em `src/adapters/`.
+### 🔴 CENÁRIO 1: Operação de Exclusão / Cancelamento (`DELETE /livros/:id`)
 
-### Padrão C: Consultas Parametrizadas e Filtragem (`GET /recursos?filtro=...`)
-* **Exemplo de Caso de Uso:** Pesquisa por categoria, status ou busca textual com paginação.
-* **Passos Arquiteturais:** Utilizar como modelo a fatia existente `src/modules/acervo/features/buscar-livro/`, reutilizando as convenções de extração de query params em `input.ts`.
+Se o enunciado pedir: *"API deve aceitar DELETE /livros/:id e remover o livro ou alterar seu estado"*:
+
+#### 1. Entidade (`src/modules/acervo/domain/Livro.ts`) — `edição`
+Cole dentro da classe `Livro`:
+```typescript
+  cancelar(): Livro {
+    return new Livro(
+      this.id,
+      this.numeroRegistro,
+      this.isbn,
+      `[CANCELADO] ${this.titulo}`,
+      this.autorId,
+      this.dataCatalogacao,
+    );
+  }
+```
+
+#### 2. Contrato (`src/modules/acervo/domain/LivroRepository.ts`) — `edição`
+Adicione na interface `LivroRepository`:
+```typescript
+  delete(id: LivroId): void;
+```
+
+#### 3. SQLite (`src/modules/acervo/infrastructure/SqliteLivroRepository.ts`) — `edição`
+Adicione na classe `SqliteLivroRepository`:
+```typescript
+  delete(id: LivroId): void {
+    db.run("DELETE FROM livros WHERE id = ?", [id.value]);
+  }
+```
+
+#### 4. Entrada da Fatia (`src/modules/acervo/features/cancelar-livro/input.ts`) — `arquivo novo`
+```typescript
+import { getFieldAsPositiveInt } from "../../../../shared/validation";
+
+export type CancelamentoDeLivro = {
+  id: number;
+};
+
+export function parseCancelamentoDeLivro(params: { id?: string }): CancelamentoDeLivro {
+  return {
+    id: getFieldAsPositiveInt(params, "id"),
+  };
+}
+```
+
+#### 5. Saída (`src/modules/acervo/output.ts`) — `edição`
+```typescript
+export type LivroCanceladoJson = {
+  id: number;
+  mensagem: string;
+};
+
+export function livroCanceladoToJson(id: number): LivroCanceladoJson {
+  return { id, mensagem: "Livro removido com sucesso" };
+}
+```
+
+#### 6. Caso de Uso (`src/modules/acervo/features/cancelar-livro/CancelarLivro.ts`) — `arquivo novo`
+```typescript
+import { LivroId } from "../../../../shared/identifiers";
+import { NotFound } from "../../../../shared/errors";
+import type { LivroRepository } from "../../domain/LivroRepository";
+import type { CancelamentoDeLivro } from "./input";
+import { livroCanceladoToJson, type LivroCanceladoJson } from "../../output";
+
+export class CancelarLivro {
+  constructor(private readonly livros: LivroRepository) {}
+
+  execute(input: CancelamentoDeLivro): LivroCanceladoJson {
+    const id = new LivroId(input.id);
+    const livro = this.livros.findById(id);
+    if (!livro) throw new NotFound("Livro não encontrado");
+
+    this.livros.delete(id);
+    return livroCanceladoToJson(input.id);
+  }
+}
+```
+
+#### 7. Rota HTTP (`src/modules/acervo/features/cancelar-livro/route.ts`) — `arquivo novo`
+```typescript
+import type { Hono } from "hono";
+import type { UseCases } from "../../../../composition";
+import { parseCancelamentoDeLivro } from "./input";
+
+export function register(routes: Hono, useCases: UseCases): void {
+  routes.delete("/livros/:id", (contexto) => {
+    const input = parseCancelamentoDeLivro(contexto.req.param());
+    return contexto.json(useCases.cancelarLivro.execute(input), 200);
+  });
+}
+```
+
+#### 8. Dublê (`tests/doubles.ts`) — `edição`
+Dentro de `InMemoryLivroRepository`:
+```typescript
+  delete(id: LivroId): void {
+    this.items = this.items.filter((livro) => !livro.id?.equals(id));
+  }
+```
+
+#### 9. Ligações Finais:
+* Em `src/modules/acervo/routes.ts`: `registerCancelarLivro(routes, useCases);`
+* Em `src/composition.ts`: `cancelarLivro: new CancelarLivro(livros)`
+
+---
+
+### 🟡 CENÁRIO 2: Novo Módulo de Empréstimos (`POST /emprestimos`) com Ponte
+
+Se o enunciado pedir: *"Criar módulo autônomo de empréstimos garantindo que o livro existe sem furar fronteira"*:
+
+#### 1. Identificador (`src/shared/identifiers.ts`) — `edição`
+```typescript
+export class EmprestimoId extends Identifier {}
+```
+
+#### 2. Entidade (`src/modules/emprestimos/domain/Emprestimo.ts`) — `arquivo novo`
+```typescript
+import type { EmprestimoId } from "../../../shared/identifiers";
+
+export class Emprestimo {
+  constructor(
+    readonly id: EmprestimoId | null,
+    readonly numeroRegistro: string,
+    readonly matricula: string,
+    readonly dataEmprestimo: string,
+  ) {}
+
+  static criar(numeroRegistro: string, matricula: string): Emprestimo {
+    return new Emprestimo(null, numeroRegistro, matricula, new Date().toISOString());
+  }
+
+  withId(id: EmprestimoId): Emprestimo {
+    return new Emprestimo(id, this.numeroRegistro, this.matricula, this.dataEmprestimo);
+  }
+}
+```
+
+#### 3. Porta do Repositório (`src/modules/emprestimos/domain/EmprestimoRepository.ts`) — `arquivo novo`
+```typescript
+import type { Emprestimo } from "./Emprestimo";
+
+export interface EmprestimoRepository {
+  insert(emprestimo: Emprestimo): Emprestimo;
+}
+```
+
+#### 4. Porta de Consulta Externa (`src/modules/emprestimos/domain/ConsultaDeAcervo.ts`) — `arquivo novo`
+```typescript
+export interface ConsultaDeAcervo {
+  existeNumeroRegistro(numeroRegistro: string): boolean;
+}
+```
+
+#### 5. Tabela SQLite (`src/modules/emprestimos/infrastructure/tables.ts`) — `arquivo novo`
+```typescript
+import { db } from "../../../infrastructure/db";
+
+export function createEmprestimoTables(): void {
+  db.run(`
+    CREATE TABLE IF NOT EXISTS emprestimos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      numero_registro TEXT NOT NULL,
+      matricula TEXT NOT NULL,
+      data_emprestimo TEXT NOT NULL
+    );
+  `);
+}
+```
+
+#### 6. Repositório SQLite (`src/modules/emprestimos/infrastructure/SqliteEmprestimoRepository.ts`) — `arquivo novo`
+```typescript
+import { db } from "../../../infrastructure/db";
+import { EmprestimoId } from "../../../shared/identifiers";
+import { Emprestimo } from "../domain/Emprestimo";
+import type { EmprestimoRepository } from "../domain/EmprestimoRepository";
+
+export class SqliteEmprestimoRepository implements EmprestimoRepository {
+  insert(emprestimo: Emprestimo): Emprestimo {
+    const result = db.run(
+      "INSERT INTO emprestimos (numero_registro, matricula, data_emprestimo) VALUES (?, ?, ?)",
+      [emprestimo.numeroRegistro, emprestimo.matricula, emprestimo.dataEmprestimo]
+    );
+    return emprestimo.withId(new EmprestimoId(Number(result.lastInsertRowid)));
+  }
+}
+```
+
+#### 7. Caso de Uso (`src/modules/emprestimos/features/registrar-emprestimo/RegistrarEmprestimo.ts`) — `arquivo novo`
+```typescript
+import { NotFound } from "../../../../shared/errors";
+import { Emprestimo } from "../../domain/Emprestimo";
+import type { EmprestimoRepository } from "../../domain/EmprestimoRepository";
+import type { ConsultaDeAcervo } from "../../domain/ConsultaDeAcervo";
+
+export class RegistrarEmprestimo {
+  constructor(
+    private readonly emprestimos: EmprestimoRepository,
+    private readonly acervo: ConsultaDeAcervo,
+  ) {}
+
+  execute(input: { numeroRegistro: string; matricula: string }) {
+    if (!this.acervo.existeNumeroRegistro(input.numeroRegistro)) {
+      throw new NotFound("Livro não catalogado no acervo");
+    }
+    const salvo = this.emprestimos.insert(Emprestimo.criar(input.numeroRegistro, input.matricula));
+    return { id: salvo.id!.value, status: "EMPRESTADO" };
+  }
+}
+```
+
+#### 8. A Ponte Entre Módulos (`src/adapters/AcervoComoConsultaDeEmprestimos.ts`) — `arquivo novo`
+```typescript
+import type { ConsultaDeLivros } from "../modules/acervo/ConsultaDeLivros";
+import type { ConsultaDeAcervo } from "../modules/emprestimos/domain/ConsultaDeAcervo";
+
+export class AcervoComoConsultaDeEmprestimos implements ConsultaDeAcervo {
+  constructor(private readonly livros: ConsultaDeLivros) {}
+
+  existeNumeroRegistro(numeroRegistro: string): boolean {
+    return this.livros.existeNumeroRegistro(numeroRegistro);
+  }
+}
+```
+
+#### 9. Registro em `scripts/check-boundaries.ts`:
+Adicione no dicionário `TABELAS`:
+```typescript
+emprestimos: "emprestimos",
+```
+
+---
+
+### 🟢 CENÁRIO 3: Consulta Parametrizada com Filtro (`GET /livros?termo=...`)
+
+Se o enunciado pedir: *"Adicionar busca filtrada por query param"*:
+
+#### 1. No Repositório (`domain/LivroRepository.ts`):
+```typescript
+  searchByTitulo(termo: string): Livro[];
+```
+
+#### 2. No SQLite (`infrastructure/SqliteLivroRepository.ts`):
+```typescript
+  searchByTitulo(termo: string): Livro[] {
+    const rows = db.query("SELECT * FROM livros WHERE titulo LIKE ?")
+      .all(`%${termo}%`) as LivroRow[];
+    return rows.map(toLivro);
+  }
+```
+
+#### 3. Na Rota HTTP (`features/buscar-livro/route.ts`):
+```typescript
+  routes.get("/livros/busca", (contexto) => {
+    const termo = contexto.req.query("termo") ?? "";
+    return contexto.json(useCases.buscarLivroPorTermo.execute(termo), 200);
+  });
+```
 
 ---
 
