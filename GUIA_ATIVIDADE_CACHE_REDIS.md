@@ -29,6 +29,77 @@
 
 ---
 
+
+---
+
+## 🧠 SE DER BRANCO NA PROVA: COMO RACIOCINAR CADA LINHA DE CÓDIGO (NÃO DECORE, ENTENDA)
+
+Se você entrar em pânico ou der branco, **não tente lembrar das letras decoradas**. Siga estas historinhas mentais que vão te guiar exatamente no que digitar:
+
+### 1. Na Rota (`route.ts`) - 3 Pensamentos:
+* **Pensamento 1:** *"Preciso chamar a busca com cache, mas ela agora me devolve DUAS coisas (a lista de livros e se foi HIT ou MISS)"*:
+  ```typescript
+  const { books, cache } = await listBooksCached(catalogIntegration);
+  ```
+* **Pensamento 2:** *"O Maróquio quer ver o cabeçalho X-Cache no Postman/DevTools. No Hono, `c.header("Nome", "Valor")` carimba isso na resposta"*:
+  ```typescript
+  c.header("X-Cache", cache);
+  ```
+* **Pensamento 3:** *"Devolvo os livros em JSON, usando `.map(bookJson)` para formatar os nomes dos campos para português"*:
+  ```typescript
+  return c.json(books.map(bookJson));
+  ```
+
+---
+
+### 2. No Orquestrador (`listBooksCached.ts`) - A Lógica do Balcão em 5 Linhas:
+* **Passo 1 (Olha no Balcão/Redis):**
+  ```typescript
+  const cached = await readCachedBookList();
+  ```
+* **Passo 2 (Já tava lá? Devolve na hora como HIT):**
+  ```typescript
+  if (cached?.books) {
+    return { books: cached.books, cache: "HIT" };
+  }
+  ```
+* **Passo 3 (Não tava? Vai na cozinha/Postgres buscar):**
+  ```typescript
+  const books = await listBooks(integration, now);
+  ```
+* **Passo 4 (O Redis tava morto? Se tava, entrega como BYPASS sem quebrar a API):**
+  ```typescript
+  if (!cached) {
+    return { books, cache: "BYPASS" };
+  }
+  ```
+* **Passo 5 (Redis tá vivo? Guarda lá pra próxima pessoa e entrega como MISS):**
+  ```typescript
+  await writeCachedBookList(cached.generation, books);
+  return { books, cache: "MISS" };
+  ```
+
+---
+
+### 3. Nas Mutações (`createBook`, `updateBook`, `deleteBook`) - Onde Colocar?
+* **A Regra:** *"Se o acervo mudou, o cache ficou velho. Mas eu SÓ posso avisar o cache DEPOIS que o banco der o commit"* (ou seja, fora e depois do bloco `inTransaction`):
+  ```typescript
+  await invalidateBookListCache();
+  ```
+  *(Por que depois do commit? Porque se chamar antes, uma requisição simultânea leria o Postgres antigo e salvaria o dado velho na geração nova!)*
+
+---
+
+### 4. No `derivedData.ts` - A Sincronização Geral:
+* **A Regra:** *"Se rodarem seed ou alterarem o banco por fora, eu limpo o cache de autores E o cache de livros"*:
+  ```typescript
+  export async function refreshDerivedData(): Promise<void> {
+    await invalidateAuthorSearch();
+    await invalidateBookListCache(); // <-- só adicionar essa linha!
+  }
+  ```
+
+
 ## ⏱️ CHECKLIST DE 3 MINUTOS ANTES DA PROVA COMEÇAR
 
 Abra o terminal na pasta do projeto e execute:
