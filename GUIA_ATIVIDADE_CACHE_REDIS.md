@@ -32,6 +32,49 @@
 
 ---
 
+
+---
+
+## 📋 ENUNCIADO COMPLETO DO SIMULADO (EXATAMENTE COMO O PROF. MARÓQUIO COBRA)
+
+### Contexto da Avaliação
+O sistema de gerenciamento de biblioteca municipal possui uma rota de listagem de todo o acervo bibliográfico (`GET /lista-livros`). Atualmente, cada chamada a essa rota consulta diretamente a tabela no PostgreSQL. Em horários de pico ou com catálogo volumoso, isso gera sobrecarga desnecessária no banco relacional.
+
+### Objetivo
+Implementar uma camada de cache em memória utilizando o **Redis 8**, adotando o padrão **Cache-Aside** com **Invalidação por Geração** e **Degradação Graciosa (Fallback / BYPASS)**, seguindo estritamente a arquitetura já consolidada no slice `search-authors`.
+
+### Requisitos Avaliados (Critérios de Correção - 20 Pontos):
+
+1. **Requisito 1 (4,0 pts) - Cabeçalho HTTP de Telemetria (`X-Cache`):**
+   A rota `GET /lista-livros` deve retornar no cabeçalho HTTP `X-Cache` o estado do atendimento:
+   - `HIT`: o dado foi recuperado diretamente do Redis.
+   - `MISS`: o dado não estava em cache, foi buscado no PostgreSQL e gravado no Redis.
+   - `BYPASS`: o Redis está fora do ar ou inacessível; a requisição é atendida pelo PostgreSQL sem quebrar a API.
+
+2. **Requisito 2 (5,0 pts) - Camada de Infraestrutura e Invalidação por Geração:**
+   - Criar `backend/src/modules/catalog/infrastructure/bookListCache.ts`.
+   - Utilizar a chave de geração `acervo:livros:geracao` e a chave de dados versionada `acervo:livros:dados:<geracao>`.
+   - Definir TTL de 60 segundos nos dados em cache.
+   - A função `invalidateBookListCache()` deve incrementar atomicamente a geração no Redis (`INCR`).
+   - Se o Redis estiver indisponível, todas as funções devem capturar o erro via `try/catch` e retornar `null` / degradar graciosamente.
+
+3. **Requisito 3 (4,0 pts) - Orquestrador do Caso de Uso com Cache:**
+   - Criar `backend/src/modules/catalog/features/list-books/listBooksCached.ts`.
+   - Implementar o fluxo completo: (a) lê cache; (b) se houver dado, devolve HIT; (c) se não, consulta o banco; (d) se o Redis estiver morto, devolve BYPASS; (e) se estiver vivo, grava na geração lida e devolve MISS.
+
+4. **Requisito 4 (3,0 pts) - Invalidação Pós-Commit e Dados Derivados:**
+   - As mutações de livro (`createBook`, `updateBook`, `deleteBook`) devem chamar `invalidateBookListCache()` **estritamente após o commit** da transação do banco de dados (fora do `inTransaction`).
+   - A rotina de sincronização `refreshDerivedData()` em `backend/src/integration/derivedData.ts` deve invocar `invalidateBookListCache()`.
+
+5. **Requisito 5 (4,0 pts) - Testes Automatizados de Integração:**
+   - Criar `backend/src/modules/catalog/features/list-books/list-books-cache.test.ts`.
+   - Cobrir os 4 cenários fundamentais:
+     - 1ª requisição MISS, 2ª requisição HIT.
+     - Invalidação automática após cadastrar, editar e excluir livros.
+     - Rejeição de dados gravados em geração defasada.
+     - Resposta com cabeçalho BYPASS quando o cliente Redis é forçado a falhar.
+
+
 ## 🧠 SE DER BRANCO NA PROVA: COMO RACIOCINAR CADA LINHA DE CÓDIGO (NÃO DECORE, ENTENDA)
 
 Se você entrar em pânico ou der branco, **não tente lembrar das letras decoradas**. Siga estas historinhas mentais que vão te guiar exatamente no que digitar:
@@ -118,6 +161,39 @@ Se você não tem prática com o VS Code, fique calmo. Você só precisa seguir 
 * Essa barra lateral é o **Explorador de Arquivos**.
 * Clique na setinha ao lado das pastas para ir abrindo nesta ordem:
   `backend` ➡️ `src` ➡️ `modules` ➡️ `catalog`
+
+
+### 🌳 Árvore Visual de Pastas e Onde Clicar no VS Code:
+
+Se você abrir o painel lateral do VS Code (**Ctrl + Shift + E**), expanda as pastas nesta ordem:
+`backend` ➡️ `src` ➡️ `modules` ➡️ `catalog`
+
+```text
+biblioteca-tutorial/
+└── backend/
+    └── src/
+        ├── integration/
+        │   └── derivedData.ts          <-- ✏️ EDITAR: adicionar invalidateBookListCache()
+        └── modules/
+            └── catalog/                <-- 📁 PASTA PRINCIPAL DA ATIVIDADE
+                ├── features/
+                │   ├── create-book/
+                │   │   └── createBook.ts   <-- ✏️ EDITAR: invalidar cache após commit
+                │   ├── delete-book/
+                │   │   └── deleteBook.ts   <-- ✏️ EDITAR: invalidar cache após commit
+                │   ├── list-books/         <-- 🎯 AQUI ESTÁ A LISTAGEM! (clique na setinha de features para abrir)
+                │   │   ├── listBooks.ts        (NÃO MEXE - busca original do banco)
+                │   │   ├── list-books.test.ts  (NÃO MEXE - teste antigo original)
+                │   │   ├── route.ts            <-- ✏️ EDITAR: adicionar header X-Cache
+                │   │   ├── listBooksCached.ts  <-- 📄 CRIAR: orquestrador do cache
+                │   │   └── list-books-cache.test.ts <-- 📄 CRIAR: 4 testes do professor
+                │   ├── search-books/       <-- 🚫 NUNCA MEXER AQUI! (Próxima aula de IA)
+                │   └── update-book/
+                │       └── updateBook.ts   <-- ✏️ EDITAR: invalidar cache após commit
+                ├── infrastructure/
+                │   └── bookListCache.ts    <-- 📄 CRIAR: funções Redis com geração
+                └── index.ts                <-- ✏️ EDITAR: exportar invalidateBookListCache
+```
 
 ### 3. Como Criar um Arquivo Novo no VS Code:
 1. Passe o mouse em cima da pasta onde quer criar o arquivo (ex: `infrastructure` ou `list-books`).
