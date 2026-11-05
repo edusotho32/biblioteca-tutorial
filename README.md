@@ -1,3 +1,15 @@
+# 🚨 PROVA PRÁTICA TEES (05/11/2026): GUIA RÁPIDO DE CACHE COM REDIS
+
+👉 **[CLIQUE AQUI PARA ABRIR O GUIA DEFINITIVO DA PROVA DE CACHE REDIS (list-books)](GUIA_ATIVIDADE_CACHE_REDIS.md)** 👈
+
+* **Atividade:** Implementação de Cache com Redis na feature `list-books` (`/lista-livros`).
+* **Valor:** 1,0 ponto | **Tempo:** 50 minutos | **Regra:** Não mexer em `search-books`!
+* **Links Diretos:**
+  * [GUIA_ATIVIDADE_CACHE_REDIS.md (Gabarito Completo Passo a Passo)](GUIA_ATIVIDADE_CACHE_REDIS.md)
+  * [GUIA_PROVA_TEES_2026.md (Manual Antigo de Arquitetura Modular)](GUIA_PROVA_TEES_2026.md)
+
+---
+
 # Biblioteca — uma feature, 53 fases
 
 Tópicos Especiais em Engenharia de Software II · Ifes 2026.2

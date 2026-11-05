@@ -8,6 +8,8 @@
 
 ## 🌐 1. Links Rápidos para Consulta Técnica
 
+* ⚡ **NOVO: GUIA DEFINITIVO PROVA DE CACHE COM REDIS (05/11/2026):**  
+  👉 **`https://github.com/edusotho32/biblioteca-tutorial/blob/guia-prova/GUIA_ATIVIDADE_CACHE_REDIS.md`**
 * 🔗 **Manual Técnico (Branch `guia-prova`):**  
   👉 **`https://github.com/edusotho32/biblioteca-tutorial/blob/guia-prova/GUIA_PROVA_TEES_2026.md`**
 * 🔗 **Manual Técnico (Branch `prova`):**  
