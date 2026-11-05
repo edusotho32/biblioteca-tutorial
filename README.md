@@ -6,6 +6,7 @@
 * **Valor:** 1,0 ponto | **Tempo:** 50 minutos | **Regra:** Não mexer em `search-books`!
 * **Links Diretos:**
   * [GUIA_ATIVIDADE_CACHE_REDIS.md (Gabarito Completo Passo a Passo)](GUIA_ATIVIDADE_CACHE_REDIS.md)
+  * [PROMPT_ANTIGRAVITY_PREPARAR_PC.md (Preparação Automática do PC Backup via Antigravity)](PROMPT_ANTIGRAVITY_PREPARAR_PC.md)
   * [GUIA_PROVA_TEES_2026.md (Manual Antigo de Arquitetura Modular)](GUIA_PROVA_TEES_2026.md)
 
 ---
