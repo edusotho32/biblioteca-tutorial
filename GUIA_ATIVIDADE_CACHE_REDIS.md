@@ -100,6 +100,49 @@ Se você entrar em pânico ou der branco, **não tente lembrar das letras decora
   ```
 
 
+
+---
+
+## 🖱️ GUIA VISUAL DO VS CODE: CLIQUE A CLIQUE (PASSO A PASSO PARA NÃO SE PERDER)
+
+Se você não tem prática com o VS Code, fique calmo. Você só precisa seguir estes cliques exatos:
+
+### 1. Como Abrir a Pasta Certa:
+1. Abra o VS Code.
+2. No menu superior, clique em **File** (Arquivo) > **Open Folder...** (Abrir Pasta...).
+3. Selecione a pasta: `C:\Users\eduso\biblioteca-tutorial` e clique em **Selecionar Pasta**.
+4. Pronto! O projeto está aberto.
+
+### 2. Onde Ficam os Arquivos (Lado Esquerdo da Tela):
+* No canto superior esquerdo, clique no ícone de **dois papéis** (ou aperte `Ctrl + Shift + E`).
+* Essa barra lateral é o **Explorador de Arquivos**.
+* Clique na setinha ao lado das pastas para ir abrindo nesta ordem:
+  `backend` ➡️ `src` ➡️ `modules` ➡️ `catalog`
+
+### 3. Como Criar um Arquivo Novo no VS Code:
+1. Passe o mouse em cima da pasta onde quer criar o arquivo (ex: `infrastructure` ou `list-books`).
+2. Vai aparecer um ícone pequeno de uma **folha de papel com um sinal de mais (+)**.
+3. Clique nele, digite o nome do arquivo (ex: `bookListCache.ts`) e dê **Enter**.
+4. O arquivo abre em branco na tela. É só colar o código do guia e salvar com `Ctrl + S`.
+
+### 4. Como Abrir o Terminal no VS Code:
+1. No menu superior do VS Code, clique em **Terminal** > **New Terminal** (Novo Terminal).
+   *(Ou aperte o atalho `Ctrl + '` - tecla do apóstrofo/crase).*
+2. Uma barra preta vai abrir na parte de baixo do VS Code.
+3. É lá que você digita os comandos de teste!
+
+### 5. O Comando da Vitória (Para Ver os 79 Testes Verdes):
+No terminal que abriu embaixo, digite exatamente isto e dê Enter:
+```bash
+docker compose -f infra/compose.yaml run --rm test
+```
+Quando o terminal parar e mostrar a frase:
+```text
+79 pass, 0 fail
+```
+Você chama o Maróquio, mostra a tela e garante seus 20 pontos!
+
+
 ## ⏱️ CHECKLIST DE 3 MINUTOS ANTES DA PROVA COMEÇAR
 
 Abra o terminal na pasta do projeto e execute:
