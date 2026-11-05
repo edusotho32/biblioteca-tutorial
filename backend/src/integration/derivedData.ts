@@ -1,4 +1,5 @@
 import { invalidateAuthorSearch } from "../modules/authorship";
+import { invalidateBookListCache } from "../modules/catalog";
 
 /**
  * Os dados derivados do Redis podem ter ficado para trás: o servidor esteve
@@ -7,4 +8,5 @@ import { invalidateAuthorSearch } from "../modules/authorship";
  */
 export async function refreshDerivedData(): Promise<void> {
   await invalidateAuthorSearch();
+  await invalidateBookListCache();
 }
