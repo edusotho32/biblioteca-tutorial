@@ -33,9 +33,15 @@ export async function ensureBookVectors(embedder: Embedder): Promise<boolean> {
     SELECT to_regclass('livros_vetores') AS regclass
   ` as { regclass: string | null }[];
 
+  const [col] = await sql`
+    SELECT 1 FROM pg_attribute
+    WHERE attrelid = to_regclass('livros_vetores') AND attname = 'v'
+  ` as { '?column?': number }[];
+
   if (
     meta.length > 0 &&
     table?.regclass &&
+    col &&
     meta[0]!.modelo === embedder.id &&
     meta[0]!.dimensoes === embedder.dimensions
   ) {
